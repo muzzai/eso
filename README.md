@@ -8,29 +8,43 @@ ArgoCD-приложение, которое устанавливает **Externa
 
 ```
 eso/
-├── Chart.yaml                         # Umbrella Helm chart (ESO как dependency)
-├── values.yaml                        # Параметры: Vault, SecretStore, ExternalSecret
+├── Chart.yaml                              # Umbrella Helm chart (ESO как dependency)
+├── values.yaml                             # Параметры: AWS, Vault, SecretStore, ExternalSecret
 ├── README.md
 └── templates/
-    ├── _helpers.tpl                   # Helm-хелперы
-    ├── secretstore.yaml               # SecretStore → Vault
-    └── external-secret-grafana.yaml   # ExternalSecret → grafana-credentials
+    ├── _helpers.tpl                        # Helm-хелперы
+    ├── secretstore-aws.yaml                # SecretStore → AWS SSM Parameter Store  (wave 1)
+    ├── external-secret-vault-approle.yaml  # ExternalSecret: SSM → vault-approle-credentials (wave 2)
+    ├── secretstore.yaml                    # SecretStore → Vault                    (wave 3)
+    └── external-secret-grafana.yaml        # ExternalSecret → grafana-credentials    (wave 4)
 ```
+
+### Sync waves
+
+| Wave | Ресурс | Описание |
+|------|--------|----------|
+| 0 | ESO Operator | CRDs + контроллер (Helm subchart) |
+| 1 | SecretStore `aws-ssm-backend` | Подключение к AWS SSM (через IAM роль EC2) |
+| 2 | ExternalSecret `vault-approle-credentials` | AppRole creds из SSM → K8s Secret |
+| 3 | SecretStore `vault-backend` | Подключение к Vault (использует Secret из wave 2) |
+| 4 | ExternalSecret `grafana-credentials` | Секреты Grafana из Vault → K8s Secret |
 
 ## Предварительные действия (до первого sync)
 
-Перед тем как ArgoCD синхронизирует приложение, необходимо вручную создать два
-Secret в кластере — они содержат конфиденциальные данные, которые **не должны**
-храниться в Git.
+### 1. AppRole credentials в AWS SSM (автоматически)
 
-### 1. AppRole credentials
+AppRole `role-id` и `secret-id` хранятся в **AWS SSM Parameter Store** и автоматически
+загружаются в Kubernetes Secret через ESO. Ручное создание Secret **не требуется**.
 
-```bash
-kubectl create secret generic vault-approle-credentials \
-  --namespace default \
-  --from-literal=role-id=<VAULT_ROLE_ID> \
-  --from-literal=secret-id=<VAULT_SECRET_ID>
-```
+**Пути параметров в SSM:**
+- `/monitoring_cluster/app_role_id` → Vault AppRole Role ID
+- `/monitoring_cluster/secret_id` → Vault AppRole Secret ID
+
+**Требования:**
+- EC2 инстанс должен иметь IAM роль с политикой `ssm:GetParameter` для указанных параметров
+- Параметры должны быть созданы в SSM (регион `us-east-2`)
+
+**Цепочка:** SSM Parameter Store → ESO (ExternalSecret wave 2) → K8s Secret `vault-approle-credentials` → Vault SecretStore (wave 3)
 
 ### 2. CA-сертификат для Vault (self-signed TLS)
 
@@ -124,16 +138,20 @@ argocd app create eso \
 # ESO operator запущен
 kubectl get pods -n default -l app.kubernetes.io/name=external-secrets
 
-# SecretStore подключён к Vault
+# Оба SecretStore подключены
 kubectl get secretstore -n default
-# STATUS: Valid
+# NAME                STATUS
+# aws-ssm-backend     Valid
+# vault-backend       Valid
 
-# ExternalSecret синхронизирован
+# Все ExternalSecret синхронизированы
 kubectl get externalsecret -n default
-# STATUS: SecretSynced
+# NAME                           STATUS
+# vault-approle-credentials      SecretSynced
+# grafana-credentials            SecretSynced
 
-# Kubernetes Secret создан
-kubectl get secret grafana-credentials -n default -o yaml
+# Kubernetes Secrets созданы
+kubectl get secret vault-approle-credentials grafana-credentials -n default
 ```
 
 ## Добавление новых секретов

@@ -5,6 +5,18 @@ external-secrets:
   installCRDs: true
 
 # -----------------------------------------------
+# AWS SSM Parameter Store settings
+# -----------------------------------------------
+aws:
+  region: "us-east-2"
+  # SecretStore for AWS SSM (uses EC2 instance IAM role — no credentials needed)
+  secretStoreName: "aws-ssm-backend"
+  # SSM parameter paths for Vault AppRole credentials
+  ssm:
+    roleIdPath: "/monitoring_cluster/app_role_id"
+    secretIdPath: "/monitoring_cluster/secret_id"
+
+# -----------------------------------------------
 # Vault connection settings
 # -----------------------------------------------
 vault:
@@ -13,8 +25,7 @@ vault:
   kvVersion: "v2"
   # KV mount path in Vault (without /data/)
   mountPath: "secret"
-  # Name of the Kubernetes Secret containing AppRole credentials
-  # (must be created manually before first sync — see README.md)
+  # Name of the Kubernetes Secret auto-provisioned from AWS SSM
   approleSecretName: "vault-approle-credentials"
   # Vault AppRole auth mount path
   approleMountPath: "approle"
