@@ -90,7 +90,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: <GIT_REPO_URL>
+    repoURL: git@github.com:muzzai/eso.git
     path: eso
     targetRevision: HEAD
   destination:
