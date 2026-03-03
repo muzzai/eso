@@ -1,0 +1,10 @@
+apiVersion: v2
+name: eso
+description: External Secrets Operator with Vault backend for ArgoCD
+version: 0.1.0
+type: application
+
+dependencies:
+  - name: external-secrets
+    version: 0.12.1
+    repository: https://charts.external-secrets.io

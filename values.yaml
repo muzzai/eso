@@ -1,0 +1,48 @@
+# -----------------------------------------------
+# External Secrets Operator (subchart) settings
+# -----------------------------------------------
+external-secrets:
+  installCRDs: true
+
+# -----------------------------------------------
+# Vault connection settings
+# -----------------------------------------------
+vault:
+  server: "https://172.31.16.128:8200"
+  # KV engine version (v1 or v2)
+  kvVersion: "v2"
+  # KV mount path in Vault (without /data/)
+  mountPath: "secret"
+  # Name of the Kubernetes Secret containing AppRole credentials
+  # (must be created manually before first sync — see README.md)
+  approleSecretName: "vault-approle-credentials"
+  # Vault AppRole auth mount path
+  approleMountPath: "approle"
+  # --- TLS ---
+  # Name of the Secret containing the Vault CA certificate
+  # (must be created manually — see README.md)
+  caSecretName: "vault-ca-cert"
+  # Key inside the Secret that holds the CA certificate
+  caSecretKey: "ca.crt"
+
+# -----------------------------------------------
+# SecretStore settings
+# -----------------------------------------------
+secretStore:
+  name: "vault-backend"
+  namespace: "default"
+
+# -----------------------------------------------
+# Grafana ExternalSecret settings
+# -----------------------------------------------
+grafana:
+  namespace: "default"
+  secretName: "grafana-credentials"
+  refreshInterval: "1h"
+  vaultSecretPath: "secret/data/grafana"
+  # Mapping: Vault key → Kubernetes Secret key
+  data:
+    - vaultKey: "admin-user"
+      secretKey: "admin-user"
+    - vaultKey: "admin-password"
+      secretKey: "admin-password"
