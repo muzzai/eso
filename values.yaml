@@ -64,10 +64,10 @@ grafana:
 # Ingress ExternalSecret settings
 # -----------------------------------------------
 ingress:
-  namespace: "etc_infra"
+  namespace: "etc-infra"
   secretName: "ingress-settings"
   refreshInterval: "1h"
-  vaultSecretPath: "secret/data/etc_infra"
+  vaultSecretPath: "secret/data/etc-infra"
   # Mapping: Vault key → Kubernetes Secret key
   data:
     - vaultKey: "domain"

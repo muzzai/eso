@@ -17,7 +17,7 @@ eso/
     ├── external-secret-vault-approle.yaml  # ExternalSecret: SSM → vault-approle-credentials (wave 2)
     ├── secretstore.yaml                    # ClusterSecretStore → Vault             (wave 3)
     ├── external-secret-grafana.yaml        # ExternalSecret → grafana (monitoring)  (wave 4)
-    └── external-secret-ingress.yaml        # ExternalSecret → ingress-settings (etc_infra) (wave 4)
+    └── external-secret-ingress.yaml        # ExternalSecret → ingress-settings (etc-infra) (wave 4)
 ```
 
 ### Sync waves
@@ -29,7 +29,7 @@ eso/
 | 2 | ExternalSecret `vault-approle-credentials` | AppRole creds из SSM → K8s Secret |
 | 3 | ClusterSecretStore `vault-backend` | Подключение к Vault (использует Secret из wave 2) |
 | 4 | ExternalSecret `grafana` | Секреты Grafana из Vault → K8s Secret (ns: monitoring) |
-| 4 | ExternalSecret `ingress-settings` | Секреты Ingress из Vault → K8s Secret (ns: etc_infra) |
+| 4 | ExternalSecret `ingress-settings` | Секреты Ingress из Vault → K8s Secret (ns: etc-infra) |
 
 ## Предварительные действия (до первого sync)
 
@@ -151,12 +151,12 @@ kubectl get externalsecret -A
 # NAMESPACE     NAME                           STATUS
 # default       vault-approle-credentials      SecretSynced
 # monitoring    grafana                        SecretSynced
-# etc_infra     ingress-settings               SecretSynced
+# etc-infra     ingress-settings               SecretSynced
 
 # Kubernetes Secrets созданы
 kubectl get secret vault-approle-credentials -n default
 kubectl get secret grafana -n monitoring
-kubectl get secret ingress-settings -n etc_infra
+kubectl get secret ingress-settings -n etc-infra
 ```
 
 ## Добавление новых секретов
@@ -174,10 +174,10 @@ kubectl get secret ingress-settings -n etc_infra
 
 1. **KV v2 engine** по пути `secret/`
 2. **AppRole auth method** включён
-3. **Role** с политикой, разрешающей чтение `secret/data/grafana` и `secret/data/etc_infra`
+3. **Role** с политикой, разрешающей чтение `secret/data/grafana` и `secret/data/etc-infra`
 4. **Секреты:**
    - `secret/grafana` — ключи: `admin-user`, `admin-password`, `teamsWebHook`
-   - `secret/etc_infra` — ключи: `domain`, `grafana_hostname`, `logs_hostname`, `metrics_hostname`
+   - `secret/etc-infra` — ключи: `domain`, `grafana_hostname`, `logs_hostname`, `metrics_hostname`
 
 ```bash
 # Включить KV v2 (если ещё не включён)
@@ -192,7 +192,7 @@ path "secret/data/grafana" {
   capabilities = ["read"]
 }
 
-path "secret/data/etc_infra" {
+path "secret/data/etc-infra" {
   capabilities = ["read"]
 }
 EOF
@@ -213,7 +213,7 @@ vault kv put secret/grafana \
   admin-password=<PASSWORD> \
   teamsWebHook=<TEAMS_WEBHOOK_URL>
 
-vault kv put secret/etc_infra \
+vault kv put secret/etc-infra \
   domain=<DOMAIN> \
   grafana_hostname=<GRAFANA_HOSTNAME> \
   logs_hostname=<LOGS_HOSTNAME> \
