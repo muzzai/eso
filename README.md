@@ -105,7 +105,7 @@ spec:
   project: default
   source:
     repoURL: git@github.com:muzzai/eso.git
-    path: eso
+    path: "."
     targetRevision: HEAD
   destination:
     server: https://kubernetes.default.svc

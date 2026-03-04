@@ -57,3 +57,7 @@ grafana:
       secretKey: "admin-user"
     - vaultKey: "admin-password"
       secretKey: "admin-password"
+    - vaultKey: "hostname"
+      secretKey: "hostname"
+    - vaultKey: "teamsWebHook"
+      secretKey: "teamsWebHook"
