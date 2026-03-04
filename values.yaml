@@ -47,7 +47,7 @@ secretStore:
 # Grafana ExternalSecret settings
 # -----------------------------------------------
 grafana:
-  namespace: "default"
+  namespace: "monitoring"
   secretName: "grafana-credentials"
   refreshInterval: "1h"
   vaultSecretPath: "secret/data/grafana"
