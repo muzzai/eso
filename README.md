@@ -15,8 +15,9 @@ eso/
     ├── _helpers.tpl                        # Helm-хелперы
     ├── secretstore-aws.yaml                # SecretStore → AWS SSM Parameter Store  (wave 1)
     ├── external-secret-vault-approle.yaml  # ExternalSecret: SSM → vault-approle-credentials (wave 2)
-    ├── secretstore.yaml                    # SecretStore → Vault                    (wave 3)
-    └── external-secret-grafana.yaml        # ExternalSecret → grafana-credentials    (wave 4)
+    ├── secretstore.yaml                    # ClusterSecretStore → Vault             (wave 3)
+    ├── external-secret-grafana.yaml        # ExternalSecret → grafana (monitoring)  (wave 4)
+    └── external-secret-ingress.yaml        # ExternalSecret → ingress-settings (etc_infra) (wave 4)
 ```
 
 ### Sync waves
@@ -26,8 +27,9 @@ eso/
 | 0 | ESO Operator | CRDs + контроллер (Helm subchart) |
 | 1 | SecretStore `aws-ssm-backend` | Подключение к AWS SSM (через IAM роль EC2) |
 | 2 | ExternalSecret `vault-approle-credentials` | AppRole creds из SSM → K8s Secret |
-| 3 | SecretStore `vault-backend` | Подключение к Vault (использует Secret из wave 2) |
-| 4 | ExternalSecret `grafana-credentials` | Секреты Grafana из Vault → K8s Secret |
+| 3 | ClusterSecretStore `vault-backend` | Подключение к Vault (использует Secret из wave 2) |
+| 4 | ExternalSecret `grafana` | Секреты Grafana из Vault → K8s Secret (ns: monitoring) |
+| 4 | ExternalSecret `ingress-settings` | Секреты Ingress из Vault → K8s Secret (ns: etc_infra) |
 
 ## Предварительные действия (до первого sync)
 
@@ -145,13 +147,16 @@ kubectl get secretstore -n default
 # vault-backend       Valid
 
 # Все ExternalSecret синхронизированы
-kubectl get externalsecret -n default
-# NAME                           STATUS
-# vault-approle-credentials      SecretSynced
-# grafana-credentials            SecretSynced
+kubectl get externalsecret -A
+# NAMESPACE     NAME                           STATUS
+# default       vault-approle-credentials      SecretSynced
+# monitoring    grafana                        SecretSynced
+# etc_infra     ingress-settings               SecretSynced
 
 # Kubernetes Secrets созданы
-kubectl get secret vault-approle-credentials grafana-credentials -n default
+kubectl get secret vault-approle-credentials -n default
+kubectl get secret grafana -n monitoring
+kubectl get secret ingress-settings -n etc_infra
 ```
 
 ## Добавление новых секретов
@@ -169,8 +174,10 @@ kubectl get secret vault-approle-credentials grafana-credentials -n default
 
 1. **KV v2 engine** по пути `secret/`
 2. **AppRole auth method** включён
-3. **Role** с политикой, разрешающей чтение `secret/data/grafana`
-4. **Секрет** `secret/grafana` с ключами `admin-user` и `admin-password`
+3. **Role** с политикой, разрешающей чтение `secret/data/grafana` и `secret/data/etc_infra`
+4. **Секреты:**
+   - `secret/grafana` — ключи: `admin-user`, `admin-password`, `teamsWebHook`
+   - `secret/etc_infra` — ключи: `domain`, `grafana_hostname`, `logs_hostname`, `metrics_hostname`
 
 ```bash
 # Включить KV v2 (если ещё не включён)
@@ -182,6 +189,10 @@ vault auth enable approle
 # Создать политику
 vault policy write eso-policy - <<EOF
 path "secret/data/grafana" {
+  capabilities = ["read"]
+}
+
+path "secret/data/etc_infra" {
   capabilities = ["read"]
 }
 EOF
@@ -196,6 +207,15 @@ vault write auth/approle/role/eso-role \
 vault read auth/approle/role/eso-role/role-id
 vault write -f auth/approle/role/eso-role/secret-id
 
-# Создать секрет для Grafana
-vault kv put secret/grafana admin-user=admin admin-password=<PASSWORD>
+# Создать секреты
+vault kv put secret/grafana \
+  admin-user=admin \
+  admin-password=<PASSWORD> \
+  teamsWebHook=<TEAMS_WEBHOOK_URL>
+
+vault kv put secret/etc_infra \
+  domain=<DOMAIN> \
+  grafana_hostname=<GRAFANA_HOSTNAME> \
+  logs_hostname=<LOGS_HOSTNAME> \
+  metrics_hostname=<METRICS_HOSTNAME>
 ```

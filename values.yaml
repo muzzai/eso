@@ -48,7 +48,7 @@ secretStore:
 # -----------------------------------------------
 grafana:
   namespace: "monitoring"
-  secretName: "grafana-credentials"
+  secretName: "grafana"
   refreshInterval: "1h"
   vaultSecretPath: "secret/data/grafana"
   # Mapping: Vault key → Kubernetes Secret key
@@ -57,7 +57,25 @@ grafana:
       secretKey: "admin-user"
     - vaultKey: "admin-password"
       secretKey: "admin-password"
-    - vaultKey: "hostname"
-      secretKey: "hostname"
     - vaultKey: "teamsWebHook"
       secretKey: "teamsWebHook"
+
+# -----------------------------------------------
+# Ingress ExternalSecret settings
+# -----------------------------------------------
+ingress:
+  namespace: "etc_infra"
+  secretName: "ingress-settings"
+  refreshInterval: "1h"
+  vaultSecretPath: "secret/data/etc_infra"
+  # Mapping: Vault key → Kubernetes Secret key
+  data:
+    - vaultKey: "domain"
+      secretKey: "domain"
+    - vaultKey: "grafana_hostname"
+      secretKey: "grafana_hostname"
+    - vaultKey: "logs_hostname"
+      secretKey: "logs_hostname"
+    - vaultKey: "metrics_hostname"
+      secretKey: "metrics_hostname"
+
